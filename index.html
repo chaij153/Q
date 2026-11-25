@@ -6,19 +6,81 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบจองคิว OM แหลมฉบัง</title>
+    <style>
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        #qrOverlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            z-index: 99999; align-items: center; justify-content: center; padding: 15px;
+        }
+        #qrBox {
+            width: 100%; max-width: 420px; background: #111; border-radius: 12px;
+            overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-family: sans-serif;
+        }
+        #qrHeader {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px; background: #222; color: #fff; font-weight: bold;
+        }
+        #qrCloseBtn {
+            background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; line-height: 1;
+        }
+    </style>
 </head>
 <body>
     <iframe id="gasFrame" style="width: 100%; height: 100vh;" scrolling="yes" frameborder="0" allow="camera *; microphone *"></iframe>
+
+    <!-- หน้าต่างกล้องสแกน QR รันบน GitHub โดยตรง (ไม่ติดบล็อก iframe) -->
+    <div id="qrOverlay">
+        <div id="qrBox">
+            <div id="qrHeader">
+                <span>สแกนคิวรับบริการ</span>
+                <button id="qrCloseBtn" onclick="closeHostScanner()">&times;</button>
+            </div>
+            <div id="host-qr-reader" style="width: 100%; background: #000;"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const page = urlParams.get('page');
         const baseUrl = "https://script.google.com/macros/s/AKfycbwnwCFnfJH6yxX9ILvokNegIy0ZWMe8gCW7Kv9VRGgZ-jjA5IwrT2w7EZNSOQ4pHsFc/exec";
-        
-        if (page) {
-            document.getElementById('gasFrame').src = baseUrl + "?page=" + page;
-        } else {
-            document.getElementById('gasFrame').src = baseUrl;
+        const gasFrame = document.getElementById('gasFrame');
+        gasFrame.src = page ? (baseUrl + "?page=" + encodeURIComponent(page)) : baseUrl;
+
+        let hostQr = null;
+        let scanSourceWindow = null;
+
+        function openHostScanner(sourceWin) {
+            scanSourceWindow = sourceWin || gasFrame.contentWindow;
+            document.getElementById('qrOverlay').style.display = 'flex';
+            if (!hostQr) hostQr = new Html5Qrcode('host-qr-reader');
+            hostQr.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 240, height: 240 } },
+                function(decodedText) {
+                    closeHostScanner();
+                    if (scanSourceWindow) {
+                        scanSourceWindow.postMessage({ type: 'OM_QR_RESULT', text: decodedText }, '*');
+                    }
+                }
+            ).catch(function(err) {
+                alert('ไม่สามารถเปิดกล้องได้: ' + err);
+                closeHostScanner();
+            });
         }
+
+        function closeHostScanner() {
+            document.getElementById('qrOverlay').style.display = 'none';
+            if (hostQr && hostQr.isScanning) {
+                hostQr.stop().catch(function() {});
+            }
+        }
+
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'OM_OPEN_QR_SCANNER') {
+                openHostScanner(e.source);
+            }
+        });
     </script>
 </body>
 </html>
