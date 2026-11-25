@@ -43,7 +43,7 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const page = urlParams.get('page');
-        const baseUrl = "https://script.google.com/macros/s/AKfycbwnwCFnfJH6yxX9ILvokNegIy0ZWMe8gCW7Kv9VRGgZ-jjA5IwrT2w7EZNSOQ4pHsFc/exec";
+        const baseUrl = "https://script.google.com/macros/s/AKfycbw6vfBPlAeEBz1JrLemV9mfwPt8qGlVSqh9xT3He0k5-2viX8L_qmNoWkzJsHLVJ3SD/exec";
         const gasFrame = document.getElementById('gasFrame');
         gasFrame.src = page ? (baseUrl + "?page=" + encodeURIComponent(page)) : baseUrl;
 
